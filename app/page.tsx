@@ -8,6 +8,18 @@ import CopyButton from "./ui/copy-button";
 
 export default function Home() {
   const [fields, setFields] = useState("");
+const [count, setCount] = useState(10);
+const [json, setJson] = useState("");
+const handleGenerate = () => {
+  const fieldArray = fields
+    .split("\n")
+    .map((f) => f.trim())
+    .filter(Boolean);
+
+  const result = generateJson(fieldArray, count);
+
+  setJson(result);
+};
 
   const fieldArray = fields
     .split("\n")
@@ -31,16 +43,37 @@ isVerified
 createdAt`}
       />
 
+      <div className="mt-4 flex items-center gap-4">
+  <input
+    type="number"
+    value={count}
+    onChange={(e) =>
+      setCount(Number(e.target.value))
+    }
+    className="border p-2 w-32"
+    placeholder="Count"
+  />
+
+  <button
+  onClick={handleGenerate}
+  disabled={!fields.trim()}
+  className="bg-black disabled:opacity-50 text-white px-4 py-2 rounded"
+>
+  Generate
+</button>
+</div>
+
       <div className="grid md:grid-cols-3 gap-4 mt-6">
         <div>
           <div className="flex justify-between items-center mb-2">
             <h2 className="font-bold">JSON</h2>
-
-            <CopyButton text={generateJson(fieldArray)} />
+         
+            <CopyButton text=  {json}
+/>
           </div>
 
           <pre className="bg-gray-100 p-4 overflow-auto text-black">
-            {generateJson(fieldArray)}
+            {json}
           </pre>
         </div>
 
