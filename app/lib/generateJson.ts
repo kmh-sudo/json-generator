@@ -18,10 +18,26 @@ type FieldSegment = {
 };
 
 export function generateJson(
-  fields: string[]
+  fields: string[],
+  count = 1
 ) {
-  faker.seed(createSeed(fields));
+  const recordCount = normalizeCount(count);
 
+  faker.seed(createSeed(fields, recordCount));
+
+  const records = Array.from(
+    { length: recordCount },
+    () => generateRecord(fields)
+  );
+
+  return JSON.stringify(
+    recordCount === 1 ? records[0] : records,
+    null,
+    2
+  );
+}
+
+function generateRecord(fields: string[]) {
   const obj: JsonObject = {};
 
   fields.forEach((field) => {
@@ -32,7 +48,7 @@ export function generateJson(
     assignValue(obj, segments);
   });
 
-  return JSON.stringify(obj, null, 2);
+  return obj;
 }
 
 function assignValue(
@@ -293,8 +309,19 @@ function isJsonObject(
   );
 }
 
-function createSeed(fields: string[]) {
-  return fields.join("\n").split("").reduce(
+function normalizeCount(count: number) {
+  if (!Number.isFinite(count)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.floor(count));
+}
+
+function createSeed(
+  fields: string[],
+  count: number
+) {
+  return `${fields.join("\n")}\n${count}`.split("").reduce(
     (hash, char) =>
       (Math.imul(31, hash) + char.charCodeAt(0)) >>> 0,
     0
