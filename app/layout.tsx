@@ -16,7 +16,9 @@ export const metadata: Metadata = {
   title: "Smart JSON Generator",
   description:
     "Generate realistic JSON mock data, TypeScript interfaces, and Prisma models from field names.",
-};
+    icons: { 
+    icon: "/logos--json-schema-icon.svg",
+}};
 
 export default function RootLayout({
   children,
