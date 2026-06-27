@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,10 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Smart JSON Generator",
   description:
-    "Generate realistic JSON mock data, TypeScript interfaces, and Prisma models from field names.",
-    icons: { 
+    "Generate clean JSON payloads, TypeScript interfaces, and Prisma models from simple field names.",
+  icons: {
     icon: "/logos--json-schema-icon.svg",
-}};
+  },
+};
 
 export default function RootLayout({
   children,
@@ -31,7 +32,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-white">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

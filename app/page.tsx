@@ -1,9 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import {
+  Braces,
+  ChevronDown,
+  Circle,
+  Download,
+  Eraser,
+  LoaderCircle,
+  Maximize2,
+  Play,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { detectType, type FieldType } from "./lib/detectType";
 import { generateJson } from "./lib/generateJson";
-import { generateTs } from "./lib/generateTs";
 import { generatePrisma } from "./lib/generatePrisma";
+import { generateTs } from "./lib/generateTs";
 import CopyButton from "./ui/copy-button";
 
 const sampleFields = [
@@ -18,275 +29,484 @@ const sampleFields = [
 ].join("\n");
 
 const fieldExamples = [
-  ["name", "realistic person name"],
-  ["email", "valid email address"],
-  ["createdAt", "ISO date string"],
-  ["isActive", "boolean value"],
-  ["address.city", "nested city field"],
-  ["users[].email", "array of user emails"],
+  ["name", "Person name"],
+  ["email", "Email address"],
+  ["createdAt", "ISO timestamp"],
+  ["isActive", "Boolean flag"],
+  ["address.city", "Nested object"],
+  ["users[].email", "Array field"],
 ];
+
+const metrics = [
+  ["10k+", "workflows analyzed"],
+  ["99.9%", "platform uptime"],
+  ["4.8x", "faster resolution"],
+  ["24/7", "monitoring loop"],
+];
+
+const pipelineSteps = ["Parse", "Infer", "Generate", "Export"];
+
+type OutputTabId = "json" | "typescript" | "prisma" | "mongoose" | "mock";
+
+type OutputTab = {
+  id: OutputTabId;
+  label: string;
+  eyebrow: string;
+  description: string;
+  language: string;
+  text: string;
+  empty: string;
+};
 
 export default function Home() {
   const [fields, setFields] = useState("");
   const [count, setCount] = useState("3");
   const [json, setJson] = useState("");
+  const [activeTab, setActiveTab] = useState<OutputTabId>("json");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const fieldArray = fields
-    .split("\n")
-    .map((f) => f.trim())
-    .filter(Boolean);
-  const tsOutput = generateTs(fieldArray);
-  const prismaOutput = generatePrisma(fieldArray);
+  const fieldArray = useMemo(
+    () =>
+      fields
+        .split("\n")
+        .map((field) => field.trim())
+        .filter(Boolean),
+    [fields]
+  );
 
-  const handleGenerate = () => {
-    setJson(generateJson(fieldArray, Number(count)));
+  const normalizedCount = normalizeRecordCount(count);
+  const tsOutput = useMemo(() => generateTs(fieldArray), [fieldArray]);
+  const prismaOutput = useMemo(() => generatePrisma(fieldArray), [fieldArray]);
+  const mongooseOutput = useMemo(() => generateMongoose(fieldArray), [fieldArray]);
+
+  const outputs: OutputTab[] = [
+    {
+      id: "json",
+      label: "JSON",
+      eyebrow: "Mock response",
+      description: "Formatted API-ready JSON payload generated from your field list.",
+      language: "json",
+      text: json,
+      empty: "Add fields and run Generate to preview formatted JSON.",
+    },
+    {
+      id: "typescript",
+      label: "TypeScript",
+      eyebrow: "Frontend contract",
+      description: "A lightweight interface that updates as your field list changes.",
+      language: "ts",
+      text: fieldArray.length > 0 ? tsOutput : "",
+      empty: "Add fields to preview a TypeScript interface.",
+    },
+    {
+      id: "prisma",
+      label: "Prisma",
+      eyebrow: "Database model",
+      description: "A starter Prisma model mapped from the same detected schema.",
+      language: "prisma",
+      text: fieldArray.length > 0 ? prismaOutput : "",
+      empty: "Add fields to preview a Prisma model.",
+    },
+    {
+      id: "mongoose",
+      label: "Mongoose",
+      eyebrow: "MongoDB schema",
+      description: "A practical Mongoose schema derived from the field list.",
+      language: "ts",
+      text: fieldArray.length > 0 ? mongooseOutput : "",
+      empty: "Add fields to preview a Mongoose schema.",
+    },
+    {
+      id: "mock",
+      label: "Mock Data",
+      eyebrow: "Faker dataset",
+      description: "The generated Faker-backed dataset, ready for tests or demos.",
+      language: "json",
+      text: json,
+      empty: "Generate JSON first to view mock data.",
+    },
+  ];
+
+  const activeOutput = outputs.find((output) => output.id === activeTab) ?? outputs[0];
+  const hasFields = fieldArray.length > 0;
+
+  const handleGenerate = async () => {
+    if (!hasFields || isGenerating) return;
+
+    setIsGenerating(true);
+
+    await Promise.resolve();
+
+    setJson(generateJson(fieldArray, normalizedCount));
+    setActiveTab("json");
+    setIsGenerating(false);
   };
 
   const handleUseExample = () => {
     setFields(sampleFields);
     setJson("");
+    setActiveTab("typescript");
+  };
+
+  const handleClear = () => {
+    setFields("");
+    setJson("");
+    setCount("3");
+    setActiveTab("json");
+  };
+
+  const handleDownload = () => {
+    if (!activeOutput.text.trim()) return;
+
+    const blob = new Blob([activeOutput.text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `smart-json-generator-${activeOutput.id}.${getFileExtension(activeOutput)}`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.22),_transparent_32rem),radial-gradient(circle_at_top_right,_rgba(168,85,247,0.18),_transparent_28rem),linear-gradient(180deg,_rgba(15,23,42,0)_0%,_#020617_78%)]" />
+    <main className="min-h-screen overflow-x-hidden bg-white text-[#09090b]">
+      <header className="sticky top-0 z-40 border-b border-[#e4e4e7] bg-white/95 backdrop-blur">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Global navigation">
+          <a href="#top" className="flex items-center gap-3" aria-label="SchemaForge home">
+            <span className="grid size-9 place-items-center rounded-xl bg-black text-white">
+              <Braces size={18} />
+            </span>
+            <span className="text-sm font-semibold tracking-tight">Json Generator</span>
+          </a>
+         
 
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-          <div>
-            <div className="mb-5 flex flex-wrap gap-2">
-              {["FakerJS data", "TypeScript", "Prisma", "Mock APIs"].map(
-                (badge) => (
-                  <span
-                    key={badge}
-                    className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-slate-200 shadow-sm backdrop-blur"
-                  >
-                    {badge}
-                  </span>
-                )
-              )}
+          <div className="flex items-center gap-3">
+           
+            <button type="button" onClick={handleUseExample} className="button-primary rounded-full px-4 py-2 text-sm font-medium">
+              Request Demo
+            </button>
+          </div>
+        </nav>
+      </header>
+
+     
+
+
+
+      <section id="demo" className="border-y border-[#e4e4e7] bg-[#fafafa]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+          <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="terminal-text text-xs font-medium uppercase tracking-[0.18em] text-[#71717a]">Live product workspace</p>
+              <h2 className="mt-4 max-w-3xl text-4xl font-light tracking-[-0.055em] text-[#09090b] sm:text-5xl">
+                Debug any problem before it reaches your API contract.
+              </h2>
             </div>
-
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">
-              Smart schema & mock data generator
-            </p>
-
-            <h1 className="max-w-4xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl">
-              Turn field names into production-ready mock data.
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              Generate realistic JSON records, TypeScript interfaces, and Prisma
-              models from a simple field list. Perfect for learning APIs,
-              prototyping database models, and testing frontend screens.
-            </p>
+           
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-2xl shadow-cyan-950/30 backdrop-blur">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-300">
-              Field examples
-            </h2>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {fieldExamples.map(([field, description]) => (
-                <div
-                  key={field}
-                  className="rounded-2xl border border-white/10 bg-slate-950/60 p-3"
-                >
-                  <code className="font-mono text-sm text-cyan-200">
-                    {field}
-                  </code>
-                  <p className="mt-1 text-xs text-slate-400">{description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-[420px_1fr]">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.07] p-5 shadow-2xl shadow-slate-950/50 backdrop-blur xl:p-6">
-            <div className="flex items-start justify-between gap-4">
+          <div className="grid gap-6 lg:grid-cols-[420px_1fr] xl:grid-cols-[450px_1fr]">
+            <aside className="rounded-[28px] border border-[#e4e4e7] bg-white p-5 shadow-sm xl:p-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-                  Workbench
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
-                  Describe your data
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Add one field per line. Use dots for nested objects and
-                  brackets for arrays.
+                <p className="terminal-text text-xs font-medium uppercase tracking-[0.18em] text-[#71717a]">Input schema</p>
+                <h3 className="mt-2 text-2xl font-light tracking-[-0.04em] text-[#09090b]">Describe your data</h3>
+                <p className="mt-2 text-sm leading-6 text-[#71717a]">
+                  Add one field per line. Use dots for nested objects and brackets for arrays.
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleUseExample}
-                className="shrink-0 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/60 hover:bg-cyan-400/20 focus:outline-none focus:ring-2 focus:ring-cyan-300"
-              >
-                Use example
-              </button>
-            </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {fieldExamples.map(([field, description]) => (
+                  <button
+                    type="button"
+                    key={field}
+                    onClick={() => setFields((current) => appendField(current, field))}
+                    className="rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-3 text-left transition hover:border-[#a1a1aa] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#18181b]"
+                  >
+                    <code className="terminal-text text-sm text-[#09090b]">{field}</code>
+                    <p className="mt-1 text-xs text-[#71717a]">{description}</p>
+                  </button>
+                ))}
+              </div>
 
-            <div className="mt-6">
-              <label
-                htmlFor="fields"
-                className="text-sm font-medium text-slate-200"
-              >
-                Fields
-              </label>
+              <div className="mt-6">
+                <div className="flex items-center justify-between gap-3">
+                  <label htmlFor="fields" className="text-sm font-medium text-[#09090b]">Fields</label>
+                  <span className="text-xs text-[#71717a]">{fieldArray.length} fields</span>
+                </div>
 
-              <textarea
-                id="fields"
-                value={fields}
-                onChange={(e) => setFields(e.target.value)}
-                rows={12}
-                className="mt-2 w-full resize-y rounded-2xl border border-white/10 bg-slate-950/80 p-4 font-mono text-sm leading-6 text-slate-100 outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 focus:ring-4 focus:ring-cyan-300/10"
-                placeholder={`name\nemail\nphone\nage\nisVerified\ncreatedAt\naddress.city\nusers[].email`}
-              />
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-[140px_1fr] sm:items-end">
-              <div>
-                <label
-                  htmlFor="count"
-                  className="text-sm font-medium text-slate-200"
-                >
-                  JSON records
-                </label>
-                <input
-                  id="count"
-                  type="number"
-                  min="1"
-                  value={count}
-                  onChange={(e) => setCount(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-300/70 focus:ring-4 focus:ring-cyan-300/10"
-                  placeholder="3"
+                <textarea
+                  id="fields"
+                  value={fields}
+                  onChange={(event) => {
+                    setFields(event.target.value);
+                    setJson("");
+                  }}
+                  rows={12}
+                  className="terminal-text mt-2 w-full resize-y rounded-3xl border border-[#e4e4e7] bg-[#fafafa] p-4 text-sm leading-6 text-[#09090b] outline-none transition placeholder:text-[#a1a1aa] focus:border-[#18181b] focus:bg-white focus:ring-2 focus:ring-[#18181b]/10"
+                  placeholder={`name\nemail\nphone\nage\nisVerified\ncreatedAt\naddress.city\nusers[].email`}
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={handleGenerate}
-                disabled={!fields.trim()}
-                className="rounded-2xl bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-950/40 transition hover:-translate-y-0.5 hover:bg-cyan-200 focus:outline-none focus:ring-4 focus:ring-cyan-300/30 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 disabled:shadow-none"
-              >
-                Generate mock data
-              </button>
-            </div>
+              <div className="mt-5 grid gap-4 sm:grid-cols-[145px_1fr] sm:items-end">
+                <div>
+                  <label htmlFor="count" className="text-sm font-medium text-[#09090b]">Records</label>
+                  <input
+                    id="count"
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={count}
+                    onChange={(event) => setCount(event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-[#e4e4e7] bg-[#fafafa] px-4 py-3 text-sm text-[#09090b] outline-none transition placeholder:text-[#a1a1aa] focus:border-[#18181b] focus:bg-white focus:ring-2 focus:ring-[#18181b]/10"
+                    placeholder="3"
+                  />
+                </div>
 
-            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-sm leading-6 text-slate-400">
-              <p>
-                <span className="font-semibold text-slate-200">Syntax:</span>{" "}
-                one field per line, nested fields like{" "}
-                <code className="rounded bg-white/10 px-1.5 py-0.5 text-cyan-200">
-                  address.city
-                </code>{" "}
-                and arrays like{" "}
-                <code className="rounded bg-white/10 px-1.5 py-0.5 text-cyan-200">
-                  users[].email
-                </code>
-                .
-              </p>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={!hasFields || isGenerating}
+                  className="button-primary inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:bg-[#d4d4d8] bg-black text-white"
+                >
+                  {isGenerating ? <LoaderCircle size={16} className="animate-spin" /> : <Play size={16} />}
+                  {isGenerating ? "Generating" : "Generate"}
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <button type="button" onClick={handleUseExample} className="button-secondary rounded-full px-4 py-3 text-sm font-medium">
+                  Example
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  disabled={!fields && count === "3" && !json}
+                  className="button-secondary inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Eraser size={15} />
+                  Clear
+                </button>
+                <CopyButton text={fields} label="input" copiedLabel="Copied" />
+              </div>
+            </aside>
+
+            <section className="min-w-0 overflow-hidden rounded-[28px] border border-[#e4e4e7] bg-white shadow-sm">
+              <div className="border-b border-[#e4e4e7] p-5">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                  <div>
+                    <p className="terminal-text text-xs font-medium uppercase tracking-[0.18em] text-[#71717a]">
+                      Generated output · {activeOutput.eyebrow}
+                    </p>
+                    <h3 className="mt-2 text-2xl font-light tracking-[-0.04em] text-[#09090b]">{activeOutput.label}</h3>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#71717a]">{activeOutput.description}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <CopyButton text={activeOutput.text} label={` ${activeOutput.label}`} copiedLabel="Copied" />
+                    <button
+                      type="button"
+                      onClick={handleDownload}
+                      disabled={!activeOutput.text.trim()}
+                      className="button-secondary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Download size={16} />
+                      Download
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-5 overflow-x-auto rounded-full border border-[#e4e4e7] bg-[#fafafa] p-1" role="tablist" aria-label="Generated output formats">
+                  <div className="flex min-w-max gap-1">
+                    {outputs.map((output) => {
+                      const isActive = output.id === activeTab;
+
+                      return (
+                        <button
+                          key={output.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={isActive}
+                          onClick={() => setActiveTab(output.id)}
+                          className={`rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-[#18181b] ${
+                            isActive
+                              ? "bg-black text-white"
+                              : "text-[#71717a] hover:bg-white hover:text-[#09090b]"
+                          }`}
+                        >
+                          {output.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#71717a]">
+                  <span className="terminal-text rounded-full border border-[#e4e4e7] bg-[#fafafa] px-3 py-1 uppercase tracking-[0.16em]">
+                    {activeOutput.language}
+                  </span>
+                  <span>{hasFields ? `${fieldArray.length} fields · ${normalizedCount} records` : "Waiting for input"}</span>
+                </div>
+
+                {activeOutput.text.trim() ? (
+                  <pre className="terminal-text h-[540px] max-h-[65vh] overflow-auto rounded-3xl border border-[#e4e4e7] bg-[#fafafa] p-4 text-sm leading-6 text-[#18181b] sm:p-5">
+                    <code>{activeOutput.text}</code>
+                  </pre>
+                ) : (
+                  <div className="flex h-[540px] max-h-[65vh] min-h-[320px] items-center justify-center rounded-3xl border border-dashed border-[#d4d4d8] bg-[#fafafa] p-6 text-center">
+                    <div className="max-w-sm">
+                      <div className="mx-auto grid size-12 place-items-center rounded-2xl border border-[#e4e4e7] bg-white text-[#71717a]">
+                        <Braces size={22} />
+                      </div>
+                      <p className="mt-4 text-sm font-medium text-[#09090b]">{activeOutput.empty}</p>
+                      <p className="mt-2 text-xs leading-5 text-[#71717a]">
+                        Output renders here with copy and download actions when available.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section id="tools" className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-24">
+        <div className="flex flex-col justify-center">
+          <p className="terminal-text text-xs font-medium uppercase tracking-[0.18em] text-[#8b0000]">Interactive tools</p>
+          <h2 className="mt-5 max-w-xl text-4xl font-light tracking-[-0.055em] text-[#09090b] sm:text-5xl lg:text-6xl">
+            Debug any problem with a clearer operational surface.
+          </h2>
+          <p className="mt-6 max-w-lg text-base leading-8 text-[#71717a]">
+            Inspect generated payload shape, preview typed contracts, and scan schema assumptions without leaving the product workspace.
+          </p>
+         
+        </div>
+
+        <div className="relative min-h-[420px] rounded-[28px] border border-[#e4e4e7] bg-[#fafafa] p-5 shadow-sm">
+          <div className="h-full rounded-[24px] border border-[#e4e4e7] bg-white p-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {pipelineSteps.map((step, index) => (
+                <article key={step} className="rounded-2xl border border-[#e4e4e7] bg-[#fafafa] p-4">
+                  <p className="terminal-text text-xs text-[#71717a]">0{index + 1}</p>
+                  <p className="mt-8 text-sm font-medium text-[#09090b]">{step}</p>
+                </article>
+              ))}
+            </div>
+            <div className="mt-5 rounded-[22px] border border-[#e4e4e7] bg-[#fafafa] p-4">
+              <div className="flex items-center justify-between text-xs text-[#71717a]">
+                <span>Schema timeline</span>
+                <span>{hasFields ? "Active" : "Idle"}</span>
+              </div>
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e4e4e7]">
+                {hasFields ? <div className="processing-bar h-full rounded-full bg-[#008b00]" /> : <div className="processing-bar h-full rounded-full bg-[#8b0000]" />}
+               
+              </div>
             </div>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-2">
-            <OutputCard
-              title="JSON"
-              eyebrow="Mock response"
-              description="Generated only when you click the button, so display and copy always match."
-              text={json}
-              empty="Your generated JSON will appear here after you add fields and click Generate."
-              className="xl:col-span-2"
-            />
+        
+        </div>
+      </section>
 
-            <OutputCard
-              title="TypeScript"
-              eyebrow="Frontend contract"
-              description="A lightweight interface that updates from your field list."
-              text={tsOutput}
-              empty="Add fields to preview a TypeScript interface."
-            />
-
-            <OutputCard
-              title="Prisma"
-              eyebrow="Database model"
-              description="A starter Prisma model for learning schema design."
-              text={prismaOutput}
-              empty="Add fields to preview a Prisma model."
-            />
+      <footer className="border-t border-[#e4e4e7] bg-white" aria-label="Site footer">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-[#71717a] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p>Built by <span className="font-medium text-[#09090b]">Mt Dev</span></p>
+          <div className="flex flex-wrap items-center gap-4">
+            <a href="#platform" className="hover:text-[#09090b]">Platform</a>
+            <a href="#demo" className="hover:text-[#09090b]">Product demo</a>
+            <a href="#tools" className="hover:text-[#09090b]">Tools</a>
           </div>
-        </section>
-
-        <footer
-          aria-label="Site footer"
-          className="border-t border-white/10 py-6 text-sm text-slate-500"
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Built by{" "}
-              <span className="font-semibold text-slate-300">Mt Dev</span>
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,0.9)]" />
-              <p>Smart JSON Generator</p>
-              <p className="text-slate-400">June 24, 2026</p>
-            </div>
-          </div>
-        </footer>
-      </div>
+        </div>
+      </footer>
     </main>
   );
 }
 
-function OutputCard({
-  title,
-  eyebrow,
-  description,
-  text,
-  empty,
-  className = "",
-}: {
-  title: string;
-  eyebrow: string;
-  description: string;
-  text: string;
-  empty: string;
-  className?: string;
-}) {
-  const hasOutput = text.trim().length > 0;
-
+function LogoCell({ name }: { name: string }) {
   return (
-    <article
-      className={`flex min-h-[360px] flex-col rounded-3xl border border-white/10 bg-slate-900/80 shadow-2xl shadow-slate-950/40 backdrop-blur ${className}`}
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 p-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-300">
-            {eyebrow}
-          </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-slate-400">
-            {description}
-          </p>
-        </div>
-
-        <CopyButton text={text} />
-      </div>
-
-      <div className="min-h-0 flex-1 p-4">
-        {hasOutput ? (
-          <pre className="h-full max-h-[520px] overflow-auto rounded-2xl border border-white/10 bg-slate-950 p-4 text-sm leading-6 text-slate-100 shadow-inner shadow-black/30">
-            <code>{text}</code>
-          </pre>
-        ) : (
-          <div className="flex h-full min-h-[240px] items-center justify-center rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-6 text-center text-sm leading-6 text-slate-500">
-            {empty}
-          </div>
-        )}
-      </div>
+    <article className="flex min-h-28 items-center justify-center border-b border-[#e4e4e7] p-6 md:border-b-0 md:border-r">
+      <svg width="120" height="32" viewBox="0 0 120 32" fill="none" role="img" aria-label={`${name} logo`}>
+        <rect x="1" y="7" width="18" height="18" rx="5" fill="#09090B" />
+        <path d="M7 16H13M10 13V19" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+        <text x="28" y="21" fill="#18181B" fontFamily="Inter, Geist, Arial, sans-serif" fontSize="16" fontWeight="500">
+          {name}
+        </text>
+      </svg>
     </article>
   );
+}
+
+function appendField(current: string, field: string) {
+  const fields = current
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (fields.includes(field)) {
+    return current;
+  }
+
+  return [...fields, field].join("\n");
+}
+
+function normalizeRecordCount(value: string) {
+  const count = Number(value);
+
+  if (!Number.isFinite(count)) {
+    return 1;
+  }
+
+  return Math.min(100, Math.max(1, Math.floor(count)));
+}
+
+function getFileExtension(output: OutputTab) {
+  if (output.language === "json") return "json";
+  if (output.id === "prisma") return "prisma";
+
+  return "ts";
+}
+
+function generateMongoose(fields: string[]) {
+  const schema = fields.map((field) => `  ${toSchemaLine(field)}`).join(",\n");
+
+  return `import { Schema, model, models } from "mongoose";\n\nconst dataSchema = new Schema({\n${schema}\n}, {\n  timestamps: true,\n});\n\nexport const Data = models.Data || model("Data", dataSchema);`;
+}
+
+function toSchemaLine(field: string): string {
+  const parts = field.split(".").map((part) => part.trim()).filter(Boolean);
+  const [firstPart, ...restParts] = parts;
+
+  if (!firstPart) {
+    return "unknown: Schema.Types.Mixed";
+  }
+
+  const fieldName = firstPart.replace(/\[\]$/g, "");
+  const isArray = firstPart.endsWith("[]");
+
+  if (restParts.length === 0) {
+    const type = toMongooseType(detectType(fieldName));
+
+    return `${fieldName}: ${isArray ? `[${type}]` : type}`;
+  }
+
+  const nestedField: string = toSchemaLine(restParts.join("."));
+  const nestedValue: string = `{\n    ${nestedField}\n  }`;
+
+  return `${fieldName}: ${isArray ? `[${nestedValue}]` : nestedValue}`;
+}
+
+function toMongooseType(type: FieldType) {
+  switch (type) {
+    case "number":
+      return "Number";
+    case "boolean":
+      return "Boolean";
+    case "date":
+      return "Date";
+    default:
+      return "String";
+  }
 }
