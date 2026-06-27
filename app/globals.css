@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --foreground: #e2e8f0;
+  --background: #ffffff;
+  --foreground: #09090b;
 }
 
 @theme inline {
@@ -12,19 +12,238 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
 }
 
 ::selection {
-  background: rgba(103, 232, 249, 0.28);
-  color: #f8fafc;
+  background: #18181b;
+  color: #ffffff;
 }
 
 button,
 textarea,
 input {
   font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.button-primary {
+  border: none;
+  background: #000000;
+  color: #ffffff;
+  transition:
+    background-color 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: #8b0000;
+}
+
+.button-primary:focus-visible,
+.button-secondary:focus-visible {
+  outline: 2px solid #18181b;
+  outline-offset: 2px;
+}
+
+.button-secondary {
+  border: 1px solid #e4e4e7;
+  background: #ffffff;
+  color: #000000;
+  transition:
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+
+.button-secondary:hover:not(:disabled) {
+  border-color: #a1a1aa;
+  background: #fafafa;
+}
+
+.terminal-text {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    Courier,
+    monospace;
+}
+
+.hero-grid {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.pulse-line,
+.pulse-line-vertical {
+  position: absolute;
+  background: rgba(139, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.pulse-line {
+  top: 50%;
+  height: 1px;
+  width: 120px;
+  transform: translateY(-50%);
+}
+
+.pulse-line-left {
+  right: 50%;
+}
+
+.pulse-line-right {
+  left: 50%;
+}
+
+.pulse-line::after,
+.pulse-line-vertical::after {
+  content: "";
+  position: absolute;
+  background: #8b0000;
+  opacity: 0.75;
+}
+
+.pulse-line::after {
+  top: 0;
+  height: 1px;
+  width: 42px;
+  animation: pulse-horizontal 2.8s ease-in-out infinite;
+}
+
+.pulse-line-left::after {
+  right: 0;
+}
+
+.pulse-line-right::after {
+  left: 0;
+}
+
+.pulse-line-vertical {
+  left: 50%;
+  top: 0;
+  height: 100%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.pulse-line-vertical::after {
+  left: 0;
+  height: 42px;
+  width: 1px;
+  animation: pulse-vertical 2.8s ease-in-out infinite;
+}
+
+.halftone-build {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(9, 9, 11, 0.88) 0 2px, transparent 2.4px),
+    radial-gradient(circle at 65% 40%, rgba(139, 0, 0, 0.52) 0 1.8px, transparent 2.2px);
+  background-size: 18px 18px, 28px 28px;
+  clip-path: polygon(12% 25%, 72% 8%, 92% 48%, 62% 88%, 18% 72%);
+  mask-image: radial-gradient(ellipse at center, black 0%, black 48%, transparent 74%);
+  animation: construct-form 7s ease-in-out infinite;
+}
+
+.processing-bar {
+  animation: processing-bar 3.4s ease-in-out infinite;
+  transform-origin: left;
+}
+
+@keyframes pulse-horizontal {
+  0% {
+    transform: translateX(-80px);
+    opacity: 0;
+  }
+
+  35% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateX(120px);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-vertical {
+  0% {
+    transform: translateY(-40px);
+    opacity: 0;
+  }
+
+  35% {
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(120px);
+    opacity: 0;
+  }
+}
+
+@keyframes construct-form {
+  0%,
+  100% {
+    filter: contrast(0.92);
+    opacity: 0.74;
+    transform: scale(0.985) translateY(3px);
+  }
+
+  50% {
+    filter: contrast(1.12);
+    opacity: 0.96;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes processing-bar {
+  0% {
+    transform: scaleX(0.18);
+  }
+
+  55% {
+    transform: scaleX(0.86);
+  }
+
+  100% {
+    transform: scaleX(0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

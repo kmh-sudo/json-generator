@@ -56,7 +56,7 @@ export default function CopyButton({
         type="button"
         onClick={handleCopy}
         disabled={disabled || status === "copying"}
-        className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:border-cyan-300/50 hover:bg-cyan-300/10 focus:outline-none focus:ring-2 focus:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-white/10 disabled:hover:bg-white/10"
+        className="button-secondary inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={buttonLabel}
       >
         {status === "copying" ? (
@@ -76,11 +76,11 @@ export default function CopyButton({
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full border border-white/10 bg-slate-950/95 px-4 py-2 text-sm font-medium text-slate-100 shadow-2xl shadow-black/50 backdrop-blur"
+          className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[#e4e4e7] bg-white px-4 py-2 text-xs font-medium text-[#09090b] shadow-xl shadow-black/10"
         >
           {status === "copied"
             ? "Copied to clipboard"
-            : "Clipboard unavailable. Select and copy manually."}
+            : "Copy failed. Select and copy manually."}
         </div>
       )}
     </>
